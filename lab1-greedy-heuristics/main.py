@@ -47,14 +47,16 @@ if __name__ == "__main__":
         print(f"{name} {method_name}: min={min(values)} max={max(values)} avg={np.mean(values):.1f}")
         print("best path:", best_path)
 
-    # best solution of each method, one panel per method
-    fig, axes = plt.subplots(2, 2, figsize=(14, 7), constrained_layout=True)
-    for ax, (method_name, (best_value, best_path)) in zip(axes.flat, best.items()):
-        points = plot_solution(df, best_path, ax, f"{method_name}  (objective {best_value})")
-    colorbar = fig.colorbar(points, ax=axes, shrink=0.6, label="node cost")
-    colorbar.outline.set_visible(False)
-    fig.suptitle(f"{name}: best solution per method (hollow = not selected, bigger/darker = higher cost)", x=0.02, ha="left")
-
+    # best solution of each method, one plot per method
     PLOTS_DIR.mkdir(exist_ok=True)
-    fig.savefig(PLOTS_DIR / f"{name}.png", dpi=150)
-    print("saved plot:", PLOTS_DIR / f"{name}.png")
+    for method_name, (best_value, best_path) in best.items():
+        fig, ax = plt.subplots(figsize=(9, 5), constrained_layout=True)
+        points = plot_solution(df, best_path, ax, f"{name} {method_name}  (objective {best_value})")
+        colorbar = fig.colorbar(points, ax=ax, shrink=0.6, label="node cost")
+        colorbar.outline.set_visible(False)
+        fig.suptitle("hollow = not selected, bigger/darker = higher cost", x=0.02, ha="left", fontsize=9)
+
+        plot_path = PLOTS_DIR / f"{name}_{method_name}.png"
+        fig.savefig(plot_path, dpi=150)
+        plt.close(fig)
+        print("saved plot:", plot_path)
