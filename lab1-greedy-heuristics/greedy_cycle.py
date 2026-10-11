@@ -16,12 +16,11 @@ def greedy_cycle(D, costs, start: int) -> list[int]:
     while len(path) < k:
         best_delta, best_node, best_position = np.inf, None, None
 
+        node_costs = np.where(visited, np.inf, costs)
+
         for i in range(len(path)):
             a, b = path[i], path[(i + 1) % len(path)]
-            delta = D[a] + D[:, b] - D[a][b] + costs
-
-            delta = delta.astype(np.float64)
-            delta[visited] = np.inf
+            delta = D[a] + D[b] - D[a, b] + node_costs
             node = int(delta.argmin())
 
             if delta[node] < best_delta:

@@ -15,19 +15,19 @@ def nearest_neighbor_any_position(D, costs, start: int) -> list[int]:
 
     while len(path) < k:
         best_delta, best_node, best_position = np.inf, None, None
+        
+        node_costs = np.where(visited, np.inf, costs)
 
         for i in range(len(path) + 1):
             if i == 0:
-                delta = D[:, path[0]] + costs
+                delta = D[path[0]] + node_costs
             elif i == len(path):
-                delta = D[path[-1]] + costs
+                delta = D[path[-1]] + node_costs
             else:
-                # between a and b, edge a->b replaced by a->node->b
+                # between a and b, edge a-b replaced by a-node-b
                 a, b = path[i - 1], path[i]
-                delta = D[a] + D[:, b] - D[a][b] + costs
+                delta = D[a] + D[b] - D[a, b] + node_costs
 
-            delta = delta.astype(np.float64)
-            delta[visited] = np.inf
             node = int(delta.argmin())
 
             if delta[node] < best_delta:
