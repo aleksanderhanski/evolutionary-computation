@@ -15,8 +15,8 @@ from random_solution import random_solution
 from nearest_neighbor_path_end_only import nearest_neighbor_path_end_only
 from nearest_neighbor_any_position import nearest_neighbor_any_position
 from greedy_cycle import greedy_cycle
-from regret import (nn_any_position_regret, nn_any_position_weighted,
-                    greedy_cycle_regret, greedy_cycle_weighted)
+from nearest_neighbor_any_position_regret import nn_any_position_regret, nn_any_position_weighted
+from greedy_cycle_regret import greedy_cycle_regret, greedy_cycle_weighted
 
 LAB_DIR = Path(__file__).resolve().parent
 PLOTS_DIR = LAB_DIR / "plots"

@@ -100,36 +100,111 @@ The weighted criterion with $w_r = 0$ is the plain greedy method from Lab~1, and
 the pure 2-regret heuristic. Ties in the score are broken by the smaller $\Delta_1$, then by the
 lower node index.
 
+\subsection*{Nearest neighbor (any position) with 2-regret}
 \begin{algorithm}[H]
-\caption{Greedy regret heuristic (used for all four new methods)}
+\caption{Nearest neighbor (any position) with 2-regret}
 \begin{algorithmic}[1]
-\Function{RegretHeuristic}{$D, \mathit{cost}, \mathit{start}, w_r, w_b$}
+\Function{NNAnyPositionRegret}{$D, \mathit{cost}, \mathit{start}$}
   \State $P \gets [\mathit{start}]$
   \While{$|P| < k$}
     \ForAll{nodes $v \notin P$}
-      \ForAll{places $p$ of $P$} \Comment{path or cycle places, see above}
-        \State compute $\Delta(v, p)$
+      \ForAll{positions $p \in 0 \dots |P|$}
+        \If{$p = 0$} \Comment{before the first node}
+          \State $\Delta(v, p) \gets D[v][P_0] + \mathit{cost}[v]$
+        \ElsIf{$p = |P|$} \Comment{after the last node}
+          \State $\Delta(v, p) \gets D[P_{|P|-1}][v] + \mathit{cost}[v]$
+        \Else \Comment{between $a = P_{p-1}$ and $b = P_p$}
+          \State $\Delta(v, p) \gets D[a][v] + D[v][b] - D[a][b] + \mathit{cost}[v]$
+        \EndIf
       \EndFor
-      \State $\Delta_1(v), p^*(v) \gets$ smallest $\Delta(v, \cdot)$ and its place
-      \State $\Delta_2(v) \gets$ second smallest $\Delta(v, \cdot)$ \Comment{$= \Delta_1(v)$ if only one place}
-      \State $\mathit{score}(v) \gets w_r \cdot (\Delta_2(v) - \Delta_1(v)) - w_b \cdot \Delta_1(v)$
+      \State $\Delta_1(v) \gets$ smallest $\Delta(v, \cdot)$, $p^*(v) \gets$ its position
+      \State $\Delta_2(v) \gets$ second smallest $\Delta(v, \cdot)$
+      \State $\mathit{score}(v) \gets \Delta_2(v) - \Delta_1(v)$
     \EndFor
-    \State $v^* \gets \arg\max_v \mathit{score}(v)$
-    \State insert $v^*$ into $P$ at place $p^*(v^*)$
+    \State $v^* \gets \arg\max_v \mathit{score}(v)$ \Comment{ties: smaller $\Delta_1$, then lower index}
+    \State insert $v^*$ into $P$ at position $p^*(v^*)$
   \EndWhile
   \State \Return $P$
 \EndFunction
 \end{algorithmic}
 \end{algorithm}
 
-The four methods are:
-\begin{itemize}
-  \item NN (any position) 2-regret: path places, $w_r = 1, w_b = 0$,
-  \item NN (any position) weighted: path places, $w_r = 1, w_b = 1$,
-  \item Greedy cycle 2-regret: cycle places, $w_r = 1, w_b = 0$,
-  \item Greedy cycle weighted: cycle places, $w_r = 1, w_b = 1$.
-\end{itemize}
+\subsection*{Nearest neighbor (any position) with weighted sum criterion}
+\begin{algorithm}[H]
+\caption{Nearest neighbor (any position) with 2-regret + best change}
+\begin{algorithmic}[1]
+\Function{NNAnyPositionWeighted}{$D, \mathit{cost}, \mathit{start}, w_r = 1, w_b = 1$}
+  \State $P \gets [\mathit{start}]$
+  \While{$|P| < k$}
+    \ForAll{nodes $v \notin P$}
+      \ForAll{positions $p \in 0 \dots |P|$}
+        \If{$p = 0$} \Comment{before the first node}
+          \State $\Delta(v, p) \gets D[v][P_0] + \mathit{cost}[v]$
+        \ElsIf{$p = |P|$} \Comment{after the last node}
+          \State $\Delta(v, p) \gets D[P_{|P|-1}][v] + \mathit{cost}[v]$
+        \Else \Comment{between $a = P_{p-1}$ and $b = P_p$}
+          \State $\Delta(v, p) \gets D[a][v] + D[v][b] - D[a][b] + \mathit{cost}[v]$
+        \EndIf
+      \EndFor
+      \State $\Delta_1(v) \gets$ smallest $\Delta(v, \cdot)$, $p^*(v) \gets$ its position
+      \State $\Delta_2(v) \gets$ second smallest $\Delta(v, \cdot)$
+      \State $\mathit{score}(v) \gets w_r \cdot (\Delta_2(v) - \Delta_1(v)) - w_b \cdot \Delta_1(v)$
+    \EndFor
+    \State $v^* \gets \arg\max_v \mathit{score}(v)$ \Comment{ties: smaller $\Delta_1$, then lower index}
+    \State insert $v^*$ into $P$ at position $p^*(v^*)$
+  \EndWhile
+  \State \Return $P$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
 
+\subsection*{Greedy cycle with 2-regret}
+\begin{algorithm}[H]
+\caption{Greedy cycle with 2-regret}
+\begin{algorithmic}[1]
+\Function{GreedyCycleRegret}{$D, \mathit{cost}, \mathit{start}$}
+  \State $P \gets [\mathit{start}]$
+  \While{$|P| < k$}
+    \ForAll{nodes $v \notin P$}
+      \ForAll{edges $(a, b)$ of the cycle $P$, including (last, first)}
+        \State $\Delta(v, (a, b)) \gets D[a][v] + D[v][b] - D[a][b] + \mathit{cost}[v]$
+      \EndFor
+      \State $\Delta_1(v) \gets$ smallest $\Delta(v, \cdot)$, $p^*(v) \gets$ its edge
+      \State $\Delta_2(v) \gets$ second smallest $\Delta(v, \cdot)$ \Comment{$= \Delta_1(v)$ while $|P| = 1$}
+      \State $\mathit{score}(v) \gets \Delta_2(v) - \Delta_1(v)$
+    \EndFor
+    \State $v^* \gets \arg\max_v \mathit{score}(v)$ \Comment{ties: smaller $\Delta_1$, then lower index}
+    \State insert $v^*$ into $P$ at edge $p^*(v^*)$
+  \EndWhile
+  \State \Return $P$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Greedy cycle with weighted sum criterion}
+\begin{algorithm}[H]
+\caption{Greedy cycle with 2-regret + best change}
+\begin{algorithmic}[1]
+\Function{GreedyCycleWeighted}{$D, \mathit{cost}, \mathit{start}, w_r = 1, w_b = 1$}
+  \State $P \gets [\mathit{start}]$
+  \While{$|P| < k$}
+    \ForAll{nodes $v \notin P$}
+      \ForAll{edges $(a, b)$ of the cycle $P$, including (last, first)}
+        \State $\Delta(v, (a, b)) \gets D[a][v] + D[v][b] - D[a][b] + \mathit{cost}[v]$
+      \EndFor
+      \State $\Delta_1(v) \gets$ smallest $\Delta(v, \cdot)$, $p^*(v) \gets$ its edge
+      \State $\Delta_2(v) \gets$ second smallest $\Delta(v, \cdot)$ \Comment{$= \Delta_1(v)$ while $|P| = 1$}
+      \State $\mathit{score}(v) \gets w_r \cdot (\Delta_2(v) - \Delta_1(v)) - w_b \cdot \Delta_1(v)$
+    \EndFor
+    \State $v^* \gets \arg\max_v \mathit{score}(v)$ \Comment{ties: smaller $\Delta_1$, then lower index}
+    \State insert $v^*$ into $P$ at edge $p^*(v^*)$
+  \EndWhile
+  \State \Return $P$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{First step}
 In the first step every place gives the same insertion cost: the path $[\mathit{start}]$ has two
 places (before and after) with equal cost, and the one-node cycle has a single degenerate edge
 $(\mathit{start}, \mathit{start})$. All regrets are therefore 0 and the tie-break picks the node
