@@ -404,8 +404,8 @@ TSPB & Greedy cycle weighted & 52731 & 52731 & yes \\
         On TSPA, NN (any position) did not gain from the regret term on average. Equal weights are a
         reasonable default: never the worst choice, and always far better than the pure 2-regret.
   \item The regret methods cost almost nothing extra: they need the same insertion costs as the
-        greedy methods, plus the second smallest value per node. Our vectorized implementation
-        takes about 15\,ms per solution.
+        greedy methods, plus the second smallest value per node. Our simple Python implementation
+        takes about 70\,ms per solution.
 \end{itemize}
 
 \end{document}

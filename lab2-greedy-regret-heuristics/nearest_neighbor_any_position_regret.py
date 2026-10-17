@@ -3,49 +3,43 @@ import math
 import numpy as np
 
 
-def insertion_deltas(D, costs, path) -> np.ndarray:
+def nn_any_position_weighted(D, costs, start: int, w_regret=1, w_best=1) -> list[int]:
     # the path is open while building, the closing edge only appears at the end
-    # row p = change of the objective after inserting each node at position p
-    # (p = 0 before the first node, p = len(path) after the last)
-    a, b = np.array(path[:-1], dtype=np.int64), np.array(path[1:], dtype=np.int64)
-    first = D[:, path[0]]
-    inside = D[a] + D[:, b].T - D[a, b][:, None]
-    last = D[path[-1]]
-    return np.vstack([first, inside, last]) + costs
-
-
-def nn_any_position_weighted(D, costs, start: int, w_regret=1.0, w_best=1.0) -> list[int]:
-    # picks the node maximizing w_regret * regret - w_best * best_delta,
-    # where regret = second best delta - best delta of that node,
+    # picks the node with the highest w_regret * regret - w_best * best_delta
     # and inserts it at its best position
 
     n = len(D)
     k = math.ceil(n / 2)
-
-    visited = np.zeros(n, dtype=bool)
-    visited[start] = True
     path = [start]
 
     while len(path) < k:
-        free = np.flatnonzero(~visited)
-        deltas = insertion_deltas(D, costs, path)[:, free].astype(np.float64)
+        free = np.array([v for v in range(n) if v not in path])
+
+        # deltas[p][i] = change of the objective after inserting free[i] at position p
+        deltas = []
+        for p in range(len(path) + 1):
+            if p == 0:
+                delta = D[free, path[0]]
+            elif p == len(path):
+                delta = D[path[-1], free]
+            else:
+                a, b = path[p - 1], path[p]
+                delta = D[a, free] + D[free, b] - D[a, b]
+            deltas.append(delta + costs[free])
+        deltas = np.array(deltas)
 
         best_position = deltas.argmin(axis=0)
-        best = deltas[best_position, np.arange(len(free))]
-        second = np.partition(deltas, 1, axis=0)[1]
-        regret = second - best
+        sorted_deltas = np.sort(deltas, axis=0)
+        best, second = sorted_deltas[0], sorted_deltas[1]
 
-        score = w_regret * regret - w_best * best
-        # ties (e.g. the first step, where all regrets are 0) go to the smaller delta
-        chosen = np.lexsort((best, -score))[0]
-
-        node = int(free[chosen])
-        visited[node] = True
-        path.insert(int(best_position[chosen]), node)
+        score = w_regret * (second - best) - w_best * best
+        # highest score, ties (e.g. the first step, where all regrets are 0) go to the smaller delta
+        i = np.lexsort((best, -score))[0]
+        path.insert(best_position[i], free[i])
 
     return path
 
 
 def nn_any_position_regret(D, costs, start: int) -> list[int]:
     # pure 2-regret: the best delta itself is ignored
-    return nn_any_position_weighted(D, costs, start, w_regret=1.0, w_best=0.0)
+    return nn_any_position_weighted(D, costs, start, w_regret=1, w_best=0)
