@@ -6,15 +6,18 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 
-# helpers.py lives one level up, shared by all labs; lab1 random solutions are the starting
-# solutions and lab3 steepest local search is the baseline
+# helpers.py lives one level up, shared by all labs; lab1 random solutions and the best lab2
+# greedy heuristics are the starting solutions, lab3 steepest local search is the baseline
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT))
 sys.path.append(str(ROOT / "lab1-greedy-heuristics"))
+sys.path.append(str(ROOT / "lab2-greedy-regret-heuristics"))
 sys.path.append(str(ROOT / "lab3-local-search"))
 
 from helpers import DATA_DIR, load_data, distance_matrix, objective, check_solution, plot_solution
 from random_solution import random_solution
+from nearest_neighbor_any_position_regret import nn_any_position_weighted
+from greedy_cycle_regret import greedy_cycle_weighted
 from local_search import steepest
 from candidate_local_search import candidate_lists, steepest_candidates
 
@@ -22,6 +25,10 @@ LAB_DIR = Path(__file__).resolve().parent
 PLOTS_DIR = LAB_DIR / "plots"
 RESULTS_DIR = LAB_DIR / "results"
 LAB3_RESULTS_DIR = ROOT / "lab3-local-search" / "results"
+
+# best greedy construction heuristic (lowest average objective in lab 2) for each instance,
+# the same greedy starting solutions as in lab 3
+BEST_GREEDY = {"TSPA": greedy_cycle_weighted, "TSPB": nn_any_position_weighted}
 
 N_CAND = 10
 # other numbers of candidate neighbors for the extra experiment
@@ -59,24 +66,29 @@ if __name__ == "__main__":
     costs = df["cost"].to_numpy(dtype=np.int64)
     n = len(D)
 
-    # 200 random starting solutions, same seed as in lab1 and lab3, so they are the same solutions
+    # 200 random starting solutions, same seed as in lab1 and lab3, so they are the same solutions,
+    # and 200 greedy starting solutions, one per start node, as in lab3
     start_rng = np.random.default_rng(42)
-    starts = [random_solution(D, costs, start_rng) for _ in range(n)]
+    starts = {
+        "random": [random_solution(D, costs, start_rng) for _ in range(n)],
+        "greedy": [BEST_GREEDY[name](D, costs, start) for start in range(n)],
+    }
 
     cand = candidate_lists(D, costs, N_CAND)
     methods = {
-        "ls_steepest_edges_random": lambda path: steepest(D, costs, path, "edges"),
-        "ls_steepest_candidates_random": lambda path: steepest_candidates(D, costs, path, cand),
+        "ls_steepest_edges": lambda path: steepest(D, costs, path, "edges"),
+        "ls_steepest_candidates": lambda path: steepest_candidates(D, costs, path, cand),
     }
     summary = {}
-    for method_name, method in methods.items():
-        summary[method_name] = run(method, starts, n)
+    for start_type, start_paths in starts.items():
+        for method_name, method in methods.items():
+            summary[f"{method_name}_{start_type}"] = run(method, start_paths, n)
 
-    # candidate moves with other numbers of nearest nodes
+    # candidate moves with other numbers of nearest nodes (random starts only)
     n_cand_results = {}
     for n_cand in N_CAND_EXPERIMENT:
         cand_n = candidate_lists(D, costs, n_cand)
-        r = run(lambda path: steepest_candidates(D, costs, path, cand_n), starts, n)
+        r = run(lambda path: steepest_candidates(D, costs, path, cand_n), starts["random"], n)
         n_cand_results[n_cand] = {key: value for key, value in r.items() if key != "best_path"}
 
     for method_name, r in summary.items():
