@@ -161,6 +161,7 @@ only means that its delta is computed twice. Per iteration there are at most $k 
 \caption{Generating the candidate moves}
 \begin{algorithmic}[1]
 \Function{CandidateMoves}{$P, \mathit{pos}, \mathit{cand}$}
+  \State $M \gets \emptyset$
   \For{$i = 0, \dots, k - 1$}
     \State $u \gets P_i$
     \ForAll{$v \in \mathit{cand}[u]$}
@@ -169,15 +170,16 @@ only means that its delta is computed twice. Per iteration there are at most $k 
         \ForAll{$(a, b) \in \{(i, j),\ (i - 1 \bmod k,\ j - 1 \bmod k)\}$}
           \State $(a, b) \gets (\min(a, b), \max(a, b))$
           \If{$b - a > 1$ and not ($a = 0$ and $b = k - 1$)} \Comment{skip neighboring edges}
-            \State \textbf{yield} (intra, $a$, $b$)
+            \State add (intra, $a$, $b$) to $M$
           \EndIf
         \EndFor
       \Else \Comment{$v$ not selected: $v$ replaces a neighbor of $u$}
-        \State \textbf{yield} (inter, $i - 1 \bmod k$, $v$)
-        \State \textbf{yield} (inter, $i + 1 \bmod k$, $v$)
+        \State add (inter, $i - 1 \bmod k$, $v$) to $M$
+        \State add (inter, $i + 1 \bmod k$, $v$) to $M$
       \EndIf
     \EndFor
   \EndFor
+  \State \Return $M$
 \EndFunction
 \end{algorithmic}
 \end{algorithm}
@@ -212,7 +214,7 @@ only means that its delta is computed twice. Per iteration there are at most $k 
 \end{algorithmic}
 \end{algorithm}
 The candidate moves are generated again in every iteration from the current $P$ and
-$\mathit{pos}$, lazily one by one, so no list of moves has to be stored or updated.
+$\mathit{pos}$, so the list of moves never has to be updated after a move is applied.
 
 \subsection*{Baseline: steepest local search without candidate moves}
 The baseline is the steepest local search of Lab~3 with the same neighborhood (inter-route node
